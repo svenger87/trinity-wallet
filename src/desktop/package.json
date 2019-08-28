@@ -119,7 +119,8 @@
     },
     "nsis": {
       "deleteAppDataOnUninstall": true,
-      "allowToChangeInstallationDirectory": true
+      "allowToChangeInstallationDirectory": true,
+      "oneClick": false
     },
     "win": {
       "publisherName": "IOTA Stiftung",
