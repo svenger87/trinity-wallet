@@ -14,14 +14,6 @@ const initialState = {
      */
     isGeneratingReceiveAddress: false,
     /**
-     * Determines if wallet is fetching currency information
-     */
-    isFetchingCurrencyData: false,
-    /**
-     * Determines if wallet has an error while fetching currency information
-     */
-    hasErrorFetchingCurrencyData: false,
-    /**
      * Determines if wallet is manually promoting a transaction
      */
     isPromotingTransaction: false,
@@ -152,27 +144,14 @@ const initialState = {
      * Determines whether to animate the chart line on mount
      */
     animateChartOnMount: true,
+    /**
+     * Determines whether to display Moonpay purchases tab
+     */
+    isViewingMoonpayPurchases: false,
 };
 
 export default (state = initialState, action) => {
     switch (action.type) {
-        case SettingsActionTypes.CURRENCY_DATA_FETCH_REQUEST:
-            return {
-                ...state,
-                isFetchingCurrencyData: true,
-                hasErrorFetchingCurrencyData: false,
-            };
-        case SettingsActionTypes.CURRENCY_DATA_FETCH_SUCCESS:
-            return {
-                ...state,
-                isFetchingCurrencyData: false,
-            };
-        case SettingsActionTypes.CURRENCY_DATA_FETCH_ERROR:
-            return {
-                ...state,
-                isFetchingCurrencyData: false,
-                hasErrorFetchingCurrencyData: true,
-            };
         case UiActionTypes.SET_SEND_ADDRESS_FIELD:
             return {
                 ...state,
@@ -264,8 +243,6 @@ export default (state = initialState, action) => {
             return {
                 ...state,
                 isGeneratingReceiveAddress: false,
-                isFetchingCurrencyData: false,
-                hasErrorFetchingCurrencyData: false,
                 hasErrorFetchingAccountInfo: false,
                 isPromotingTransaction: false,
                 isTransitioning: false,
@@ -461,6 +438,11 @@ export default (state = initialState, action) => {
             return {
                 ...state,
                 animateChartOnMount: action.payload,
+            };
+        case UiActionTypes.SET_VIEWING_MOONPAY_PURCHASES:
+            return {
+                ...state,
+                isViewingMoonpayPurchases: action.payload,
             };
         default:
             return state;

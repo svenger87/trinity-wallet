@@ -19,12 +19,11 @@ import {
 } from 'selectors/accounts';
 import {
     fetchMarketData,
-    fetchChartData,
-    fetchPrice,
     fetchNodeList,
     setPollFor,
     promoteTransfer,
     getAccountInfoForAllAccounts,
+    fetchTransactions as fetchMoonPayTransactions,
 } from 'actions/polling';
 import { retryFailedTransaction } from 'actions/transfers';
 
@@ -56,13 +55,11 @@ class Polling extends React.PureComponent {
         /** @ignore */
         fetchMarketData: PropTypes.func.isRequired,
         /** @ignore */
-        fetchPrice: PropTypes.func.isRequired,
-        /** @ignore */
         fetchNodeList: PropTypes.func.isRequired,
         /** @ignore */
-        fetchChartData: PropTypes.func.isRequired,
-        /** @ignore */
         promoteTransfer: PropTypes.func.isRequired,
+        /** @ignore */
+        fetchMoonPayTransactions: PropTypes.func.isRequired,
         /** Bundle hashes for failed transactions categorised by account name & type */
         failedBundleHashes: PropTypes.shape({
             name: PropTypes.string,
@@ -79,6 +76,8 @@ class Polling extends React.PureComponent {
         /** @ignore */
         isPollingAccountInfo: PropTypes.bool.isRequired,
         /** @ignore */
+        isPollingMoonPayTransactions: PropTypes.bool.isRequired,
+        /** @ignore */
         isAutoPromoting: PropTypes.bool.isRequired,
         /** @ignore */
         isTransitioning: PropTypes.bool.isRequired,
@@ -94,6 +93,8 @@ class Polling extends React.PureComponent {
         isSendingTransfer: PropTypes.bool.isRequired,
         /** @ignore */
         isFetchingAccountInfo: PropTypes.bool.isRequired,
+        /** @ignore */
+        isAuthenticatedForMoonPay: PropTypes.bool.isRequired,
     };
 
     state = {
@@ -132,11 +133,10 @@ class Polling extends React.PureComponent {
         const dict = {
             promotion: this.promote,
             marketData: this.props.fetchMarketData,
-            price: this.props.fetchPrice,
-            chartData: this.props.fetchChartData,
             nodeList: this.props.fetchNodeList,
             accountInfo: this.fetchLatestAccountInfo,
             broadcast: this.retryFailedTransaction,
+            moonpayTransactions: this.fetchMoonPayTransactions,
         };
 
         dict[service] ? dict[service]() : this.props.setPollFor(this.props.allPollingServices[0]);
@@ -148,6 +148,23 @@ class Polling extends React.PureComponent {
             [selectedAccountName, ...filter(accountNames, (name) => name !== selectedAccountName)],
             Electron.notify,
         );
+    };
+
+    /**
+     * Fetch MoonPay transaction history (if user is authenticated)
+     *
+     * @method fetchMoonPayTransactions
+     *
+     * @returns {void}
+     */
+    fetchMoonPayTransactions = () => {
+        const { isAuthenticatedForMoonPay } = this.props;
+
+        if (isAuthenticatedForMoonPay) {
+            this.props.fetchMoonPayTransactions();
+        } else {
+            this.moveToNextPollService();
+        }
     };
 
     /**
@@ -213,7 +230,8 @@ class Polling extends React.PureComponent {
             this.props.isPollingChartData ||
             this.props.isPollingMarketData ||
             this.props.isPollingAccountInfo ||
-            this.props.isAutoPromoting;
+            this.props.isAutoPromoting ||
+            this.props.isPollingMoonPayTransactions;
 
         return isAlreadyDoingSomeHeavyLifting || isAlreadyPollingSomething;
     }
@@ -231,6 +249,7 @@ const mapStateToProps = (state) => ({
     isPollingMarketData: state.polling.isFetchingMarketData,
     isPollingAccountInfo: state.polling.isFetchingAccountInfo,
     isAutoPromoting: state.polling.isAutoPromoting,
+    isPollingMoonPayTransactions: state.polling.isFetchingMoonPayTransactions,
     isSyncing: state.ui.isSyncing,
     addingAdditionalAccount: isSettingUpNewAccount(state),
     isGeneratingReceiveAddress: state.ui.isGeneratingReceiveAddress,
@@ -245,20 +264,17 @@ const mapStateToProps = (state) => ({
     isRetryingFailedTransaction: state.ui.isRetryingFailedTransaction,
     failedBundleHashes: getFailedBundleHashes(state),
     password: state.wallet.password,
+    isAuthenticatedForMoonPay: state.exchanges.moonpay.isAuthenticated,
 });
 
 const mapDispatchToProps = {
     fetchMarketData,
-    fetchChartData,
-    fetchPrice,
     fetchNodeList,
     setPollFor,
     promoteTransfer,
     getAccountInfoForAllAccounts,
     retryFailedTransaction,
+    fetchMoonPayTransactions,
 };
 
-export default connect(
-    mapStateToProps,
-    mapDispatchToProps,
-)(Polling);
+export default connect(mapStateToProps, mapDispatchToProps)(Polling);

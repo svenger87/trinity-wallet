@@ -1,4 +1,7 @@
 /* global Electron */
+import last from 'lodash/last';
+import split from 'lodash/split';
+import isString from 'lodash/isString';
 import React from 'react';
 import isEmpty from 'lodash/isEmpty';
 import PropTypes from 'prop-types';
@@ -25,9 +28,18 @@ import {
     forceUpdate,
     displayTestWarning,
 } from 'actions/wallet';
+import {
+    fetchTransactionDetails as fetchMoonPayTransactionDetails,
+    setAuthenticationStatus as setMoonPayAuthenticationStatus,
+} from 'actions/exchanges/MoonPay';
+import { MOONPAY_RETURN_URL } from 'exchanges/MoonPay';
+import { __DEV__ } from 'config';
+
 import { updateTheme } from 'actions/settings';
 import { fetchNodeList } from 'actions/polling';
 import { dismissAlert, generateAlert } from 'actions/alerts';
+
+import MoonPayKeychainAdapter from 'libs/MoonPay';
 
 import Theme from 'ui/global/Theme';
 import Idle from 'ui/global/Idle';
@@ -40,9 +52,11 @@ import UpdateProgress from 'ui/global/UpdateProgress';
 import Loading from 'ui/components/Loading';
 
 import Onboarding from 'ui/views/onboarding/Index';
+
 import Wallet from 'ui/views/wallet/Index';
 import Settings from 'ui/views/settings/Index';
 import Ledger from 'ui/global/seedStore/Ledger';
+import MoonPayExchange from 'ui/views/exchanges/MoonPay/Index';
 
 /**
  * Wallet wrapper component
@@ -103,6 +117,10 @@ class App extends React.Component {
         initiateDeepLinkRequest: PropTypes.func.isRequired,
         /** @ignore */
         setDeepLinkContent: PropTypes.func.isRequired,
+        /** @ignore */
+        setMoonPayAuthenticationStatus: PropTypes.func.isRequired,
+        /** @ignore */
+        fetchMoonPayTransactionDetails: PropTypes.func.isRequired,
     };
 
     constructor(props) {
@@ -184,6 +202,14 @@ class App extends React.Component {
      */
     setDeepUrl(data) {
         const { deepLinking, generateAlert, t } = this.props;
+
+        const transactionId = last(split(data, '='));
+
+        if (data.includes(MOONPAY_RETURN_URL) && isString(transactionId)) {
+            this.props.fetchMoonPayTransactionDetails(transactionId);
+            return this.props.history.push('/exchanges/moonpay/payment-pending');
+        }
+
         this.props.initiateDeepLinkRequest();
         if (!deepLinking) {
             this.props.history.push('/settings/advanced');
@@ -288,16 +314,28 @@ class App extends React.Component {
                 this.props.history.push('/onboarding/seed-intro');
                 break;
             case 'logout':
-                this.props.clearWalletData();
-                this.props.setPassword({});
-                this.props.setAccountInfoDuringSetup({
-                    name: '',
-                    meta: {},
-                    completed: false,
-                    usedExistingSeed: false,
-                });
-                Electron.setOnboardingSeed(null);
-                this.props.history.push('/onboarding/login');
+                MoonPayKeychainAdapter.clear()
+                    .then(() => {
+                        this.props.setMoonPayAuthenticationStatus(false);
+                        this.props.clearWalletData();
+                        this.props.setPassword({});
+                        this.props.setAccountInfoDuringSetup({
+                            name: '',
+                            meta: {},
+                            completed: false,
+                            usedExistingSeed: false,
+                        });
+                        Electron.setOnboardingSeed(null);
+                        this.props.history.push('/onboarding/login');
+                    })
+                    .catch((error) => {
+                        if (__DEV__) {
+                            /* eslint-disable no-console */
+                            console.log(error);
+                            /* eslint-enable no-console */
+                        }
+                    });
+
                 break;
             default:
                 if (item.indexOf('settings/account') === 0) {
@@ -315,7 +353,7 @@ class App extends React.Component {
 
         const currentKey = location.pathname.split('/')[1] || '/';
 
-        if (fatalError && (fatalError === 'Found old data' && currentKey !== 'settings')) {
+        if (fatalError && fatalError === 'Found old data' && currentKey !== 'settings') {
             return (
                 <div>
                     <Theme history={history} />
@@ -345,6 +383,7 @@ class App extends React.Component {
                                 />
                                 <Route path="/wallet" component={Wallet} />
                                 <Route path="/onboarding" component={Onboarding} />
+                                <Route path="/exchanges/moonpay" component={MoonPayExchange} />
                                 <Route loop={false} component={this.Init} />
                             </Switch>
                         </div>
@@ -384,11 +423,8 @@ const mapDispatchToProps = {
     shouldUpdate,
     forceUpdate,
     displayTestWarning,
+    setMoonPayAuthenticationStatus,
+    fetchMoonPayTransactionDetails,
 };
 
-export default withRouter(
-    connect(
-        mapStateToProps,
-        mapDispatchToProps,
-    )(withTranslation()(App)),
-);
+export default withRouter(connect(mapStateToProps, mapDispatchToProps)(withTranslation()(App)));

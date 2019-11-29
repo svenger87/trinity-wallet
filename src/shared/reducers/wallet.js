@@ -59,6 +59,7 @@ const initialState = {
      * Determines whether to display test version warning
      */
     displayTestWarning: false,
+    activationCode: null,
 };
 
 export default (state = initialState, action) => {
@@ -185,7 +186,7 @@ export default (state = initialState, action) => {
         case WalletActionTypes.POP_TO_ROUTE:
             return {
                 ...state,
-                navStack: state.navStack.slice(0, state.navStack.indexOf(action.payload) - 1),
+                navStack: state.navStack.slice(0, state.navStack.indexOf(action.payload) + 1),
             };
         case WalletActionTypes.RESET_ROUTE:
             return {
@@ -206,6 +207,11 @@ export default (state = initialState, action) => {
             return {
                 ...state,
                 displayTestWarning: true,
+            };
+        case WalletActionTypes.SET_ACTIVATION_CODE:
+            return {
+                ...state,
+                activationCode: action.payload,
             };
         default:
             return state;
