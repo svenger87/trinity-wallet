@@ -1,4 +1,5 @@
 import assign from 'lodash/assign';
+import isEmpty from 'lodash/isEmpty';
 import map from 'lodash/map';
 import merge from 'lodash/merge';
 import get from 'lodash/get';
@@ -11,6 +12,8 @@ import api, { IOTA_CURRENCY_CODE, MOONPAY_RETURN_URL } from '../../../exchanges/
 import { getCustomerEmail, getSelectedPaymentCard, getCustomerCountryCode } from '../../../selectors/exchanges/MoonPay';
 import { __DEV__ } from '../../../config';
 import i18next from '../../../libs/i18next';
+import Errors from '../../../libs/errors';
+import { mergeOmittingNull } from '../../../libs/utils';
 
 /**
  * Dispatch to set supported currencies by MoonPay
@@ -489,6 +492,17 @@ export const setLoggingIn = (payload) => ({
 });
 
 /**
+ * Dispatch to clear moonpay reducers data
+ *
+ * @method clearData
+ *
+ * @returns {{type: {string} }}
+ */
+export const clearData = () => ({
+    type: MoonPayExchangeActionTypes.CLEAR_DATA,
+});
+
+/**
  * Fetches list of all currencies supported by MoonPay
  *
  * @method fetchCurrencies
@@ -638,22 +652,19 @@ export const verifyEmailAndFetchMeta = (securityCode, keychainAdapter) => (dispa
  *
  * @returns {function}
  */
-export const updateCustomer = (info) => (dispatch, getState) => {
+export const updateCustomer = (info) => (dispatch) => {
     dispatch(updateCustomerRequest());
-
     api.updateUserInfo(info)
         .then((data) => {
             return api.fetchCustomerPurchaseLimits().then((purchaseLimits) => {
                 dispatch(
                     updateCustomerInfo(
-                        merge({}, data, {
+                        mergeOmittingNull({
                             address: {
-                                country: get(info, 'address.country')
-                                    ? get(data, 'address.country')
-                                    : getCustomerCountryCode(getState()),
+                                country: get(info, 'address.country'),
+                                state: get(info, 'address.state')
                             },
-                            purchaseLimits,
-                        }),
+                        }, merge(purchaseLimits, data)),
                     ),
                 );
                 dispatch(updateCustomerSuccess());
@@ -854,10 +865,13 @@ export const setMeta = (meta) => (dispatch, getState) => {
 export const refreshCredentialsAndFetchMeta = (jwt, csrfToken, keychainAdapter) => (dispatch) => {
     api.refreshCredentials(jwt, csrfToken)
         .then((data) => {
-            return keychainAdapter
-                .set({ jwt: get(data, 'token'), csrfToken: get(data, 'csrfToken') })
-                .then(() => api.fetchMeta(IOTA_CURRENCY_CODE))
-                .then((meta) => {
+            return api.fetchMeta(IOTA_CURRENCY_CODE).then((meta) => {
+                // Enforce user to select country if he/she doesn't have payment cards
+                if (isEmpty(meta.paymentCards)) {
+                    throw new Error(Errors.NO_PAYMENT_CARDS);
+                }
+
+                return keychainAdapter.set({ jwt: get(data, 'token'), csrfToken: get(data, 'csrfToken') }).then(() => {
                     dispatch(setAuthenticationStatus(true));
                     dispatch(
                         setMeta(
@@ -867,6 +881,7 @@ export const refreshCredentialsAndFetchMeta = (jwt, csrfToken, keychainAdapter) 
                         ),
                     );
                 });
+            });
         })
         .catch((error) => {
             dispatch(setAuthenticationStatus(false));

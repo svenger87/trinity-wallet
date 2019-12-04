@@ -16,7 +16,6 @@ import {
     getDefaultCurrencyCode,
     getCustomerDailyLimits,
     getCustomerMonthlyLimits,
-    shouldRequireStateInput,
     hasStoredAnyPaymentCards,
 } from 'shared-modules/selectors/exchanges/MoonPay';
 import WithUserActivity from 'ui/components/UserActivity';
@@ -27,7 +26,6 @@ import AnimatedComponent from 'ui/components/AnimatedComponent';
 import { width, height } from 'libs/dimensions';
 import { Styling } from 'ui/theme/general';
 import Header from 'ui/components/Header';
-import { isIPhoneX } from 'libs/device';
 
 const styles = StyleSheet.create({
     container: {
@@ -111,8 +109,6 @@ class UserAdvancedInfo extends React.Component {
         /** @ignore */
         defaultCurrencyCode: PropTypes.string.isRequired,
         /** @ignore */
-        shouldRequireStateInput: PropTypes.bool.isRequired,
-        /** @ignore */
         hasAnyPaymentCards: PropTypes.bool.isRequired,
         /** @ignore */
         updateCustomerInfo: PropTypes.func.isRequired,
@@ -125,7 +121,6 @@ class UserAdvancedInfo extends React.Component {
             address: isNull(props.address) ? '' : props.address,
             city: isNull(props.city) ? '' : props.city,
             zipCode: isNull(props.zipCode) ? '' : props.zipCode,
-            state: isNull(props.state) ? '' : props.state,
         };
     }
 
@@ -198,7 +193,7 @@ class UserAdvancedInfo extends React.Component {
      * @returns {function}
      */
     updateCustomer() {
-        const { hasAnyPaymentCards, shouldRequireStateInput, country, t } = this.props;
+        const { state, hasAnyPaymentCards, country, t } = this.props;
 
         if (!this.state.address) {
             return this.props.generateAlert(
@@ -208,10 +203,6 @@ class UserAdvancedInfo extends React.Component {
             );
         }
 
-        if (shouldRequireStateInput && !this.state.state) {
-            return this.props.generateAlert('error', t('moonpay:invalidState'), t('moonpay:invalidStateExplanation'));
-        }
-
         if (!this.state.city) {
             return this.props.generateAlert('error', t('moonpay:invalidCity'), t('moonpay:invalidCityExplanation'));
         }
@@ -219,18 +210,18 @@ class UserAdvancedInfo extends React.Component {
         if (!this.state.zipCode) {
             return this.props.generateAlert(
                 'error',
-                t('moonpay:invalidZipCode'),
-                t('moonpay:invalidZipCodeExplanation'),
+                country === 'USA' ? 'Invalid zip code' : t('moonpay:invalidZipCode'),
+                country === 'USA' ? 'Please enter a valid zip code.' :t('moonpay:invalidZipCodeExplanation'),
             );
         }
 
         const data = {
             address: {
                 country,
+                state,
                 street: this.state.address,
                 town: this.state.city,
                 postCode: this.state.zipCode,
-                ...(shouldRequireStateInput && { state: this.state.state }),
             },
         };
 
@@ -265,76 +256,7 @@ class UserAdvancedInfo extends React.Component {
     }
 
     renderTextFields() {
-        const { shouldRequireStateInput, t } = this.props;
-
-        if (shouldRequireStateInput) {
-            return (
-                <View style={{ flex: 1 }}>
-                    <View style={{ flex: 0.6 }} />
-                    {this.renderTextField(t('moonpay:address'), this.state.address, {
-                        onValidTextChange: (address) => this.setState({ address }),
-                        onSubmitEditing: () => {
-                            if (this.state.address) {
-                                this.stateTextField.focus();
-                            }
-                        },
-                    })}
-                    <View style={{ flex: 0.6 }} />
-                    {this.renderTextField(t('moonpay:state'), this.state.state, {
-                        onValidTextChange: (state) => this.setState({ state }),
-                        onRef: (c) => {
-                            this.stateTextField = c;
-                        },
-                        onSubmitEditing: () => {
-                            if (this.state.state) {
-                                this.city.focus();
-                            }
-                        },
-                    })}
-                    <View style={{ flex: 0.6 }} />
-                    <AnimatedComponent
-                        animationInType={['slideInRight', 'fadeIn']}
-                        animationOutType={['slideOutLeft', 'fadeOut']}
-                        delay={160}
-                    >
-                        <View
-                            style={{
-                                flexDirection: 'row',
-                                alignItems: 'flex-start',
-                                width,
-                                justifyContent: 'space-around',
-                            }}
-                        >
-                            {this.renderTextField(t('moonpay:city'), this.state.city, {
-                                onValidTextChange: (city) => this.setState({ city }),
-                                containerStyle: {
-                                    width: isIPhoneX ? width / 2.33 : width / 2.66,
-                                },
-                                onRef: (c) => {
-                                    this.city = c;
-                                },
-                                onSubmitEditing: () => {
-                                    if (this.state.city) {
-                                        this.zipCode.focus();
-                                    }
-                                },
-                            })}
-                            {this.renderTextField(t('moonpay:zipCode'), this.state.zipCode, {
-                                onValidTextChange: (zipCode) => this.setState({ zipCode }),
-                                containerStyle: {
-                                    width: isIPhoneX ? width / 2.33 : width / 2.66,
-                                },
-                                onRef: (c) => {
-                                    this.zipCode = c;
-                                },
-                                returnKeyType: 'done',
-                            })}
-                        </View>
-                    </AnimatedComponent>
-                    <View style={{ flex: 0.6 }} />
-                </View>
-            );
-        }
+        const { t, country } = this.props;
 
         return (
             <View style={{ flex: 1 }}>
@@ -360,7 +282,7 @@ class UserAdvancedInfo extends React.Component {
                     },
                 })}
                 <View style={{ flex: 0.6 }} />
-                {this.renderTextField(t('moonpay:zipCode'), this.state.zipCode, {
+                {this.renderTextField(country === 'USA' ? "ZIP CODE" : t('moonpay:zipCode'), this.state.zipCode, {
                     onValidTextChange: (zipCode) => this.setState({ zipCode }),
                     onRef: (c) => {
                         this.zipCode = c;
@@ -452,7 +374,6 @@ const mapStateToProps = (state) => ({
     dailyLimits: getCustomerDailyLimits(state),
     monthlyLimits: getCustomerMonthlyLimits(state),
     defaultCurrencyCode: getDefaultCurrencyCode(state),
-    shouldRequireStateInput: shouldRequireStateInput(state),
     hasAnyPaymentCards: hasStoredAnyPaymentCards(state),
 });
 
@@ -462,11 +383,4 @@ const mapDispatchToProps = {
     updateCustomerInfo,
 };
 
-export default WithUserActivity()(
-    withTranslation()(
-        connect(
-            mapStateToProps,
-            mapDispatchToProps,
-        )(UserAdvancedInfo),
-    ),
-);
+export default WithUserActivity()(withTranslation()(connect(mapStateToProps, mapDispatchToProps)(UserAdvancedInfo)));

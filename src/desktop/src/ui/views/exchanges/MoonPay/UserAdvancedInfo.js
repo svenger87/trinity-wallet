@@ -11,7 +11,6 @@ import {
     getDefaultCurrencyCode,
     getCustomerDailyLimits,
     getCustomerMonthlyLimits,
-    shouldRequireStateInput,
     hasStoredAnyPaymentCards,
 } from 'selectors/exchanges/MoonPay';
 import { getAmountInFiat, convertFiatCurrency } from 'exchanges/MoonPay/utils';
@@ -37,15 +36,13 @@ class UserAdvancedInfo extends React.PureComponent {
         /** @ignore */
         country: PropTypes.string,
         /** @ignore */
-        zipCode: PropTypes.string,
-        /** @ignore */
         state: PropTypes.string,
+        /** @ignore */
+        zipCode: PropTypes.string,
         /** @ignore */
         generateAlert: PropTypes.func.isRequired,
         /** @ignore */
         updateCustomer: PropTypes.func.isRequired,
-        /** @ignore */
-        shouldRequireStateInput: PropTypes.bool.isRequired,
         /** @ignore */
         history: PropTypes.shape({
             goBack: PropTypes.func.isRequired,
@@ -59,12 +56,15 @@ class UserAdvancedInfo extends React.PureComponent {
         updateCustomerInfo: PropTypes.func.isRequired,
     };
 
-    state = {
-        address: isNull(this.props.address) ? '' : this.props.address,
-        city: isNull(this.props.city) ? '' : this.props.city,
-        zipCode: isNull(this.props.zipCode) ? '' : this.props.zipCode,
-        state: isNull(this.props.state) ? '' : this.props.state,
-    };
+    constructor(props) {
+        super(props);
+
+        this.state = {
+            address: isNull(props.address) ? '' : props.address,
+            city: isNull(props.city) ? '' : props.city,
+            zipCode: isNull(props.zipCode) ? '' : props.zipCode,
+        };
+    }
 
     componentWillReceiveProps(nextProps) {
         if (this.props.isUpdatingCustomer && !nextProps.isUpdatingCustomer && !nextProps.hasErrorUpdatingCustomer) {
@@ -120,7 +120,7 @@ class UserAdvancedInfo extends React.PureComponent {
      * @returns {function}
      */
     updateCustomer() {
-        const { hasAnyPaymentCards, shouldRequireStateInput, country, t } = this.props;
+        const { state, hasAnyPaymentCards, country, t } = this.props;
 
         if (!this.state.address) {
             return this.props.generateAlert(
@@ -130,10 +130,6 @@ class UserAdvancedInfo extends React.PureComponent {
             );
         }
 
-        if (shouldRequireStateInput && !this.state.state) {
-            return this.props.generateAlert('error', t('moonpay:invalidState'), t('moonpay:invalidStateExplanation'));
-        }
-
         if (!this.state.city) {
             return this.props.generateAlert('error', t('moonpay:invalidCity'), t('moonpay:invalidCityExplanation'));
         }
@@ -141,21 +137,20 @@ class UserAdvancedInfo extends React.PureComponent {
         if (!this.state.zipCode) {
             return this.props.generateAlert(
                 'error',
-                t('moonpay:invalidZipCode'),
-                t('moonpay:invalidZipCodeExplanation'),
+                country === 'USA' ? 'Invalid zip code' : t('moonpay:invalidZipCode'),
+                country === 'USA' ? 'Please enter a valid zip code.' : t('moonpay:invalidZipCodeExplanation'),
             );
         }
 
         const data = {
             address: {
                 country,
+                state,
                 street: this.state.address,
                 town: this.state.city,
                 postCode: this.state.zipCode,
-                ...(shouldRequireStateInput && { state: this.state.state }),
             },
         };
-
         if (hasAnyPaymentCards) {
             this.props.updateCustomerInfo(data);
             return this.redirect(this.props);
@@ -165,15 +160,15 @@ class UserAdvancedInfo extends React.PureComponent {
     }
 
     render() {
-        const { shouldRequireStateInput, t } = this.props;
-        const { address, city, state, zipCode } = this.state;
+        const { t, country } = this.props;
+        const { address, city, zipCode } = this.state;
 
         return (
             <form>
                 <section className={css.long}>
                     <div>
                         <p> {t('moonpay:tellUsMore')}</p>
-                        <p>{t('moonpay:cardRegistrationName')}</p>
+                        <p>{t('moonpay:cardBillingAddress')}</p>
                     </div>
                     <fieldset>
                         <Input
@@ -181,40 +176,16 @@ class UserAdvancedInfo extends React.PureComponent {
                             label={t('moonpay:address')}
                             onChange={(newAddress) => this.setState({ address: newAddress })}
                         />
-                        {shouldRequireStateInput && (
-                            <Input
-                                value={state}
-                                label={t('moonpay:state')}
-                                onChange={(newState) => this.setState({ state: newState })}
-                            />
-                        )}
-                        {shouldRequireStateInput ? (
-                            <span>
-                                <Input
-                                    value={city}
-                                    label={t('moonpay:city')}
-                                    onChange={(newCity) => this.setState({ city: newCity })}
-                                />
-                                <Input
-                                    value={zipCode}
-                                    label={t('moonpay:zipCode')}
-                                    onChange={(newZipCode) => this.setState({ zipCode: newZipCode })}
-                                />
-                            </span>
-                        ) : (
-                            <div>
-                                <Input
-                                    value={city}
-                                    label={t('moonpay:city')}
-                                    onChange={(newCity) => this.setState({ city: newCity })}
-                                />
-                                <Input
-                                    value={zipCode}
-                                    label={t('moonpay:zipCode')}
-                                    onChange={(newZipCode) => this.setState({ zipCode: newZipCode })}
-                                />
-                            </div>
-                        )}
+                        <Input
+                            value={city}
+                            label={t('moonpay:city')}
+                            onChange={(newCity) => this.setState({ city: newCity })}
+                        />
+                        <Input
+                            value={zipCode}
+                            label={country === 'USA' ? "ZIP CODE" : t('moonpay:zipCode')}
+                            onChange={(newZipCode) => this.setState({ zipCode: newZipCode })}
+                        />
                     </fieldset>
                 </section>
                 <footer className={css.choiceDefault}>
@@ -247,9 +218,9 @@ const mapStateToProps = (state) => ({
     hasErrorUpdatingCustomer: state.exchanges.moonpay.hasErrorUpdatingCustomer,
     address: state.exchanges.moonpay.customer.address.street,
     city: state.exchanges.moonpay.customer.address.town,
+    state: state.exchanges.moonpay.customer.address.state,
     country: state.exchanges.moonpay.customer.address.country,
     zipCode: state.exchanges.moonpay.customer.address.postCode,
-    state: state.exchanges.moonpay.customer.address.state,
     amount: state.exchanges.moonpay.amount,
     denomination: state.exchanges.moonpay.denomination,
     exchangeRates: state.exchanges.moonpay.exchangeRates,
@@ -259,7 +230,6 @@ const mapStateToProps = (state) => ({
     dailyLimits: getCustomerDailyLimits(state),
     monthlyLimits: getCustomerMonthlyLimits(state),
     defaultCurrencyCode: getDefaultCurrencyCode(state),
-    shouldRequireStateInput: shouldRequireStateInput(state),
     hasAnyPaymentCards: hasStoredAnyPaymentCards(state),
 });
 
