@@ -273,7 +273,7 @@ function createWindow() {
                 'privacy@iota.org',
             ];
             const ledgerOnboarding = ['support.ledger.com'];
-            const exchanges = ['moonpay.io'];
+            const exchanges = ['help.moonpay.io', 'moonpay.io'];
 
             const miscLinks = ['github.com'];
 
