@@ -51,18 +51,25 @@ const init = () => {
             store.dispatch(mapStorageToState(data));
         });
 
-        render(
-            <ErrorBoundary>
-                <Redux store={store}>
-                    <I18nextProvider i18n={i18next}>
-                        <Router>
-                            <Tray />
-                        </Router>
-                    </I18nextProvider>
-                </Redux>
-            </ErrorBoundary>,
-            rootEl,
-        );
+        const renderTray = async () => {
+            // Initialize i18next
+            await i18nextInit();
+
+            render(
+                <ErrorBoundary>
+                    <Redux store={store}>
+                        <I18nextProvider i18n={i18next}>
+                            <Router>
+                                <Tray />
+                            </Router>
+                        </I18nextProvider>
+                    </Redux>
+                </ErrorBoundary>,
+                rootEl,
+            );
+        };
+
+        renderTray();
     } else {
         getEncryptionKey()
             .then(async (key) => {
