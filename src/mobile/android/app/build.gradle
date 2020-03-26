@@ -163,6 +163,7 @@ android {
     }
 }
 dependencies {
+    implementation project(':react-native-udp')
     // Make sure to put android-jsc at the top
     implementation "org.webkit:android-jsc-intl:r241213"
 

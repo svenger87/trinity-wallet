@@ -2,6 +2,7 @@ import React, { Component } from 'react';
 import PropTypes from 'prop-types';
 import { View, PanResponder, ViewPropTypes } from 'react-native';
 import timer from 'react-native-timer';
+import getTime from 'libs/ntp';
 
 export default class UserInactivity extends Component {
     static propTypes = {
@@ -96,7 +97,7 @@ export default class UserInactivity extends Component {
         this.inactivityTimer = null;
     };
 
-    maybeStartWatchingForInactivity = () => {
+    maybeStartWatchingForInactivity = async () => {
         if (this.inactivityTimer) {
             return;
         }
@@ -104,8 +105,9 @@ export default class UserInactivity extends Component {
 
         this.inactivityTimer = timer.setInterval(
             'inactivityTimer',
-            () => {
-                if (new Date() - this.lastInteraction >= timeForInactivity) {
+            async () => {
+                const time = (await getTime()) || Date.now();
+                if (time - this.lastInteraction >= timeForInactivity) {
                     this.setIsInactive();
                     timer.setTimeout('logoutTimer', () => this.props.logout(), timeForLogout - timeForInactivity);
                 }
