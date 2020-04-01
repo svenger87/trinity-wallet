@@ -5785,9 +5785,9 @@
       "dev": true
     },
     "decompress": {
-      "version": "4.2.0",
-      "resolved": "https://registry.npmjs.org/decompress/-/decompress-4.2.0.tgz",
-      "integrity": "sha1-eu3YVCflqS2s/lVnSnxQXpbQH50=",
+      "version": "4.2.1",
+      "resolved": "https://registry.npmjs.org/decompress/-/decompress-4.2.1.tgz",
+      "integrity": "sha512-e48kc2IjU+2Zw8cTb6VZcJQ3lgVbS4uuB1TfCHbiZIP/haNXm+SVyhu+87jts5/3ROpd82GSVCoNs/z8l4ZOaQ==",
       "requires": {
         "decompress-tar": "^4.0.0",
         "decompress-tarbz2": "^4.0.0",
@@ -16484,9 +16484,9 @@
       }
     },
     "realm": {
-      "version": "5.0.2",
-      "resolved": "https://registry.npmjs.org/realm/-/realm-5.0.2.tgz",
-      "integrity": "sha512-se7dXsi+hsPKM105IByG6kR95AuDYGJpCDxo4GiZbaH+AXsGz7KXowbQ2W1Ad7ynklGTQmQK4CDDNfv+a5LmZQ==",
+      "version": "5.0.3",
+      "resolved": "https://registry.npmjs.org/realm/-/realm-5.0.3.tgz",
+      "integrity": "sha512-V1q/qp5CeAqe5TW8eJVtGakLbR/sKjeEtJ9e1m/ISze8bU46kvNfCFQApiBPuujrWUgo/v+4qN1QgKwFa+8a9g==",
       "requires": {
         "command-line-args": "^4.0.6",
         "decompress": "^4.2.0",
@@ -18595,9 +18595,9 @@
       }
     },
     "unbzip2-stream": {
-      "version": "1.3.3",
-      "resolved": "https://registry.npmjs.org/unbzip2-stream/-/unbzip2-stream-1.3.3.tgz",
-      "integrity": "sha512-fUlAF7U9Ah1Q6EieQ4x4zLNejrRvDWUYmxXUpN3uziFYCHapjWFaCAnreY9bGgxzaMCFAPPpYNng57CypwJVhg==",
+      "version": "1.4.0",
+      "resolved": "https://registry.npmjs.org/unbzip2-stream/-/unbzip2-stream-1.4.0.tgz",
+      "integrity": "sha512-kVx7CDAsdBSWVf404Mw7oI9i09w5/mTT/Ruk+RWa64PLYKvsAucLLFHvQtnvjeADM4ZizxrvG5SHnF4Te4T2Cg==",
       "requires": {
         "buffer": "^5.2.1",
         "through": "^2.3.8"
